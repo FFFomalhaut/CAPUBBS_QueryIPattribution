@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         CAPUBBS QueryIPattribution
 // @namespace    http://tampermonkey.net/
-// @version      1.0
-// @description  rt
+// @version      2.0
+// @description  增加了一个可以免费查询的api，ipv4和ipv6都能查。但ipv4下校园网识别不佳。
 // @author       FFFomalhaut
 // @match        https://*.chexie.net/bbs/online/*
 // @icon         https://chexie.net/assets/images/capu.jpg
@@ -30,11 +30,21 @@
         return 0;
     }
 
-    function locate(ip) {
-        if (ip.includes(":")) {
-            return "-无IPv6数据-";
-        }
+    function locateAndFill_api(td_ip) {
+        $.get("https://api.mir6.com/api/ip",{
+            "ip": td_ip.innerHTML,
+            "type": "json",
+        }, "json").done(function (data) {
+            var attribution = data.data.location +"<br>"+ data.data.isp +"<br>"+ data.data.net;
+            $(td_ip).next().html(attribution);
+        }).fail(function(errorThrown) {
+            $(td_ip).next().html(errorThrown);
+        })
+    };
+
+    function locateAndFill_local(td_ip, tr) {
         var l=0, r=data.length;
+        var ip = td_ip.innerHTML;
         while (l<r) {
             var mid = (l+r)/2 |0
             if (compare(ip,data[mid][0]) == -1) {
@@ -44,26 +54,56 @@
                 l=mid+1;
             }
             else {
-                return data[mid][2];
+                var attribution = data[mid][2].replace(" ","<br>");
+                $(td_ip).next().html(attribution);
+                return;
             }
         }
     }
 
     if ($("tr:first").children().length == 6) {
-        $("colgroup > :eq(2)").after($("<col width='130'>"));
+        $("colgroup > :eq(2)").after($("<col width='200'>"));
         $("tr:first >:eq(2)").after($("<th>IP归属地</th>"));
         $("tbody").children().not(":first").each(function(i,tr) {
             var td_ip = tr.childNodes[2];
-            try {
-                var location = locate(td_ip.innerHTML).replace(" ","<br>");
-            } catch (Error) {
-                location = "发生错误";
-            }
-            $(tr).children().eq(2).after($("<td></td>").html(location));
+            $(td_ip).after($("<td></td>"));
+            locateAndFill_api(td_ip);
         })
-        $("tbody").append($("<tr><td colspan='6'>归属地数据来源：纯真IP地址数据库</td></tr>"));
-        $("tbody").append($("<tr><td colspan='6'>最后更新：2023年08月23日</td></tr>"));
+        $("tbody").append($("<tr><td id='v4' colspan='6'>IPv4归属地数据来源：<a href='api.mir6.com'>api.mir6.com</a></td></tr>"));
+        $("tbody").append($("<tr><td id='v6' colspan='6'>IPv6归属地数据来源：<a href='api.mir6.com'>api.mir6.com</a></td></tr>"));
+        $("table").after($(
+            `<div>
+                选择IPv4数据来源
+                <select id='select' onchange=reload()>
+                    <option value='cz88'>cz88.net</option>
+                    <option value='mir' selected>api.mir6.com</option>
+                </select>
+            </div>`
+        ))
     }
+
+    window.reload = function() {
+        if ($("#select").prop("selectedIndex") == 0) {
+            $("tbody").children().slice(1,-2).each(function(i,tr) {
+                var td_ip = tr.childNodes[2];
+                if (td_ip.innerHTML.includes(":")) {
+                    return;
+                }
+                locateAndFill_local(td_ip);
+            });
+            $("#v4").html("IPv4归属地数据来源：<a href='cz88.net'>cz88.net</a>")
+        }
+        if ($("#select").prop("selectedIndex") == 1) {
+            $("tbody").children().slice(1,-2).each(function(i,tr) {
+                var td_ip = tr.childNodes[2];
+                if (td_ip.innerHTML.includes(":")) {
+                    return;
+                }
+                locateAndFill_api(td_ip);
+            });
+            $("#v4").html("IPv4归属地数据来源：<a href='api.mir6.com'>api.mir6.com</a>")
+        }
+    };
 
     // Your code here...
 })();
