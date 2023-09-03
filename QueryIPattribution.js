@@ -13,7 +13,7 @@
 
 (function() {
     'use strict';
-    /* global data, $ */
+    /* global localData, $ */
 
     function compare(ip1, ip2) {
         var list1 = ip1.split(".");
@@ -40,21 +40,21 @@
         }).fail(function(errorThrown) {
             $(td_ip).next().html(errorThrown);
         })
-    };
+    }
 
-    function locateAndFill_local(td_ip, tr) {
-        var l=0, r=data.length;
+    function locateAndFill_local(td_ip) {
+        var l=0, r=localData.length;
         var ip = td_ip.innerHTML;
         while (l<r) {
             var mid = (l+r)/2 |0
-            if (compare(ip,data[mid][0]) == -1) {
+            if (compare(ip,localData[mid][0]) == -1) {
                 r=mid;
             }
-            else if (compare(ip,data[mid][1]) == 1) {
+            else if (compare(ip,localData[mid][1]) == 1) {
                 l=mid+1;
             }
             else {
-                var attribution = data[mid][2].replace(" ","<br>");
+                var attribution = localData[mid][2].replace(" ","<br>");
                 $(td_ip).next().html(attribution);
                 return;
             }
@@ -63,14 +63,14 @@
 
     if ($("tr:first").children().length == 6) {
         $("colgroup > :eq(2)").after($("<col width='200'>"));
-        $("tr:first >:eq(2)").after($("<th>IP归属地</th>"));
+        $("tr:first > :eq(2)").after($("<th>IP归属地</th>"));
         $("tbody").children().not(":first").each(function(i,tr) {
             var td_ip = tr.childNodes[2];
             $(td_ip).after($("<td></td>"));
             locateAndFill_api(td_ip);
         })
-        $("tbody").append($("<tr><td id='v4' colspan='6'>IPv4归属地数据来源：<a href='api.mir6.com'>api.mir6.com</a></td></tr>"));
-        $("tbody").append($("<tr><td id='v6' colspan='6'>IPv6归属地数据来源：<a href='api.mir6.com'>api.mir6.com</a></td></tr>"));
+        $("tbody").append($("<tr><td id='v4' colspan='6'>IPv4归属地数据来源：<a href='https://api.mir6.com' target='_blank'>api.mir6.com</a></td></tr>"));
+        $("tbody").append($("<tr><td id='v6' colspan='6'>IPv6归属地数据来源：<a href='https://api.mir6.com' target='_blank'>api.mir6.com</a></td></tr>"));
         $("table").after($(
             `<div>
                 选择IPv4数据来源
@@ -79,10 +79,11 @@
                     <option value='mir' selected>api.mir6.com</option>
                 </select>
             </div>`
-        ))
+        ));
     }
 
     window.reload = function() {
+        var href;
         if ($("#select").prop("selectedIndex") == 0) {
             $("tbody").children().slice(1,-2).each(function(i,tr) {
                 var td_ip = tr.childNodes[2];
@@ -91,9 +92,8 @@
                 }
                 locateAndFill_local(td_ip);
             });
-            $("#v4").html("IPv4归属地数据来源：<a href='cz88.net'>cz88.net</a>")
-        }
-        if ($("#select").prop("selectedIndex") == 1) {
+	    href = $("#select > option").eq(0).html();
+        } else if ($("#select").prop("selectedIndex") == 1) {
             $("tbody").children().slice(1,-2).each(function(i,tr) {
                 var td_ip = tr.childNodes[2];
                 if (td_ip.innerHTML.includes(":")) {
@@ -101,9 +101,10 @@
                 }
                 locateAndFill_api(td_ip);
             });
-            $("#v4").html("IPv4归属地数据来源：<a href='api.mir6.com'>api.mir6.com</a>")
+	    href = $("#select > option").eq(1).html();
         }
-    };
+        $("#v4").html("IPv4归属地数据来源：<a href='https://"+href+"' target='_blank'>"+href+"</a>");
+    }
 
     // Your code here...
 })();
