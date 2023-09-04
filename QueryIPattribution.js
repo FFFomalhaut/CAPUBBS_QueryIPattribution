@@ -35,7 +35,11 @@
             "ip": td_ip.innerHTML,
             "type": "json",
         }, "json").done(function (data) {
-            var attribution = data.data.location +"<br>"+ data.data.isp +"<br>"+ data.data.net;
+            var simp_location = data.data.location;
+            if ((data.data.country == "中国") && (data.data.province != "")) {
+                simp_location = data.data.location.match(/(?<=\s).*/);
+            }
+            var attribution = simp_location +"<br>"+ data.data.isp +"<br>"+ data.data.net;
             $(td_ip).next().html(attribution);
         }).fail(function(errorThrown) {
             $(td_ip).next().html(errorThrown);
